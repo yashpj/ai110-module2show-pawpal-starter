@@ -2,15 +2,30 @@
 
 ## 1. System Design
 
+3 Actions user can do:
+i - user should be able to add/edit tasks.
+ii - Generate a daily schedule/plan based on constraints and priorities.
+iii - Let a user enter basic owner + pet info
+
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+The system is built around five classes:
+
+- **`Pet`** (dataclass) — holds the pet's name, species, and age. A pure data holder with no scheduling logic.
+- **`Task`** (dataclass) — represents one care activity (walk, feeding, meds, etc.) with a duration, priority, and optional preferred time of day.
+- **`Owner`** (dataclass) — stores the owner's name and how many minutes per day they have available for pet care.
+- **`Scheduler`** — the core logic class. It holds a list of candidate tasks and an Owner + Pet reference. Its `generate_plan()` method selects and orders tasks that fit within the owner's time budget, prioritising high-priority tasks first.
+- **`DailyPlan`** — the output of a scheduling run. It separates tasks into scheduled vs. skipped, tracks total duration, and exposes `display()` and `explain()` for the UI.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+After reviewing the skeleton with AI, three changes were made:
+
+1. **`Owner` converted to a dataclass** — the initial draft used a manual `__init__`, which was inconsistent with `Pet` and `Task`. Making it a dataclass removes boilerplate and keeps all three data-holder classes uniform.
+
+2. **`Task.is_valid()` replaced with `__post_init__`** — originally `is_valid()` was a standalone method the caller had to remember to invoke. Moving validation into `__post_init__` means a `Task` with bad data (e.g. negative duration) raises an error at construction time, making it impossible to add an invalid task to the scheduler.
+
+3. **`DailyPlan` now receives `owner`** — `explain()` needs to say why tasks were skipped (e.g. "only 60 minutes available"). Without a reference to `Owner`, the plan had no access to the time budget it was built against.
 
 ---
 
