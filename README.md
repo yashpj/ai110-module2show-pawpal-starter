@@ -53,3 +53,30 @@ Beyond the basic greedy planner, `pawpal_system.py` includes four algorithmic en
 - **Recurring tasks** — `Task.mark_complete()` auto-advances `due_date` using `timedelta`: daily tasks move +1 day, weekly tasks move +7 days, and `as-needed` tasks stay completed. No manual reset required.
 
 - **Conflict detection** — `Scheduler.detect_conflicts()` checks whether any two tasks for the same pet have overlapping `[start, start+duration)` windows and returns human-readable warning strings. Conflicts are surfaced in `DailyPlan.display()` rather than blocking the schedule, preserving owner flexibility.
+
+## Testing PawPal+
+
+### Run the tests
+
+```bash
+python3 -m pytest tests/ -v
+```
+
+### What the tests cover
+
+19 tests across 6 categories in `tests/test_pawpal.py`:
+
+| Category | What is verified |
+|---|---|
+| **Task validation** | `Task` rejects zero or negative duration at construction time |
+| **Recurrence logic** | Daily tasks auto-advance `due_date` by +1 day and reset `completed`; weekly by +7 days; `as-needed` stays completed permanently |
+| **Pet task management** | `add_task()` grows the task list; `get_pending_tasks()` excludes completed tasks |
+| **Sorting correctness** | `sort_by_time()` returns tasks in chronological order whether using an explicit `start_time` or a slot default (morning/afternoon/evening) |
+| **Conflict detection** | Overlapping windows are flagged; back-to-back tasks are not; tasks without a `start_time` are safely ignored |
+| **Edge cases** | Owner with no pets, pet with no tasks, single task exceeding the full time budget, filtering by pet name |
+
+### Confidence level
+
+★★★★☆ (4 / 5)
+
+The core scheduling, recurrence, sorting, and conflict detection are well covered. The one-star gap reflects untested areas: the Streamlit UI layer has no automated tests, and the greedy scheduling algorithm is not tested against all possible priority + duration combinations (e.g. a mix where a lower-priority short task fits but a high-priority long one does not).
