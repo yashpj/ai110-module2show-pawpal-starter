@@ -33,13 +33,13 @@ After reviewing the skeleton with AI, three changes were made:
 
 **a. Constraints and priorities**
 
-- What constraints does your scheduler consider (for example: time, priority, preferences)?
-- How did you decide which constraints mattered most?
+The scheduler considers three constraints: (1) the owner's total available minutes per day — tasks that don't fit are skipped entirely; (2) task priority (high → medium → low) — higher-priority tasks are always scheduled first regardless of duration; (3) within the same priority tier, shorter tasks are preferred (greedy fit) to maximise the number of tasks completed.
+
+Priority was chosen as the primary constraint because a missed medication is more harmful than a missed enrichment session. Time budget is secondary — it's a hard cap. Duration as a tiebreaker is a performance heuristic, not a user-facing preference.
 
 **b. Tradeoffs**
 
-- Describe one tradeoff your scheduler makes.
-- Why is that tradeoff reasonable for this scenario?
+The conflict detector flags overlaps using exact `start_time` + `duration_minutes` interval arithmetic, but it only warns — it does not remove conflicting tasks from the schedule. This means a user can see two tasks flagged as overlapping and still choose to keep both (e.g., if one pet can be fed while the other is on a walk with a helper). The tradeoff is flexibility over strictness: a hard block would be safer but would require the user to manually resolve every overlap before generating a plan, which adds friction for a simple daily-planning tool.
 
 ---
 

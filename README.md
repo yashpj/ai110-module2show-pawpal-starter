@@ -41,3 +41,15 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+## Smarter Scheduling
+
+Beyond the basic greedy planner, `pawpal_system.py` includes four algorithmic enhancements:
+
+- **Sort by time** — `Scheduler.sort_by_time()` orders any task list chronologically using each task's `start_time` (HH:MM) or a slot default (`morning → 08:00`, `afternoon → 13:00`, `evening → 18:00`). Uses a `lambda` key with Python's built-in `sorted()`.
+
+- **Filter tasks** — `Scheduler.filter_tasks(pet_name, completed)` lets you slice the full task list by pet name, completion status, or both. Useful for showing only pending tasks or a single pet's workload.
+
+- **Recurring tasks** — `Task.mark_complete()` auto-advances `due_date` using `timedelta`: daily tasks move +1 day, weekly tasks move +7 days, and `as-needed` tasks stay completed. No manual reset required.
+
+- **Conflict detection** — `Scheduler.detect_conflicts()` checks whether any two tasks for the same pet have overlapping `[start, start+duration)` windows and returns human-readable warning strings. Conflicts are surfaced in `DailyPlan.display()` rather than blocking the schedule, preserving owner flexibility.
