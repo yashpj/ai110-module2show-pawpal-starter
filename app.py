@@ -98,11 +98,13 @@ else:
         except ValueError as e:
             st.error(str(e))
 
-    # Show current tasks per pet
+    # Show current tasks per pet, sorted chronologically
+    scheduler_preview = Scheduler(owner)
     for pet in owner.pets:
         if pet.tasks:
-            st.write(f"**{pet.name}'s tasks:**")
-            st.table([t.to_dict() for t in pet.tasks])   # <-- calls Task.to_dict()
+            st.write(f"**{pet.name}'s tasks** (sorted by time):")
+            sorted_pairs = scheduler_preview.sort_by_time([(pet, t) for t in pet.tasks])
+            st.table([t.to_dict() for _, t in sorted_pairs])   # <-- sort_by_time + to_dict()
 
 # ---------------------------------------------------------------------------
 # Section 4: Generate schedule
@@ -116,10 +118,42 @@ if not all_tasks:
 else:
     if st.button("Generate schedule"):
         scheduler = Scheduler(owner)
-        plan      = scheduler.generate_plan()   # <-- calls Scheduler.generate_plan()
+        plan      = scheduler.generate_plan()
 
-        st.subheader("Your Plan")
-        st.text(plan.display())     # <-- calls DailyPlan.display()
+        # ---- Conflict warnings (shown first so owner can act on them) --------
+        if plan.conflicts:
+            st.subheader("⚠️ Scheduling Conflicts")
+            for warning in plan.conflicts:
+                st.warning(warning)
+            st.caption("Conflicts are shown as warnings — your plan is still generated below. Adjust task start times to resolve them.")
 
+        # ---- Scheduled tasks as a table -------------------------------------
+        st.subheader("Scheduled Tasks")
+        if plan.scheduled_pairs:
+            progress = plan.total_duration / owner.available_minutes
+            st.progress(min(progress, 1.0), text=f"{plan.total_duration} / {owner.available_minutes} min used")
+
+            scheduled_rows = [
+                {
+                    "pet":       pet.name,
+                    "task":      task.name,
+                    "start":     task.start_time or task.preferred_time,
+                    "duration":  f"{task.duration_minutes} min",
+                    "priority":  task.priority,
+                    "frequency": task.frequency,
+                }
+                for pet, task in plan.scheduled_pairs
+            ]
+            st.table(scheduled_rows)
+        else:
+            st.info("No tasks fit within your available time.")
+
+        # ---- Skipped tasks --------------------------------------------------
+        if plan.skipped_pairs:
+            with st.expander(f"Skipped tasks ({len(plan.skipped_pairs)})"):
+                for pet, task in plan.skipped_pairs:
+                    st.error(f"{pet.name}: {task.name} — {task.duration_minutes} min ({task.priority} priority) didn't fit.")
+
+        # ---- Reasoning ------------------------------------------------------
         with st.expander("Why this plan?"):
-            st.text(plan.explain()) # <-- calls DailyPlan.explain()
+            st.text(plan.explain())

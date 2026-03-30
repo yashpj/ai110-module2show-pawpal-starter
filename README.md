@@ -1,6 +1,30 @@
 # PawPal+ (Module 2 Project)
 
-You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.
+**PawPal+** is a Streamlit app that helps a busy pet owner plan daily care tasks across multiple pets — considering time budgets, task priority, recurring schedules, and time conflicts.
+
+## 📸 Demo
+
+<a href="/course_images/ai110/pawpal_screenshot.png" target="_blank"><img src='pawpal_screenshot1.png' title='PawPal App 1' width='' alt='PawPal App' class='center-block' /></a>
+
+<a href="pawpal_screenshot.png" target="_blank"><img src='pawpal_screenshot2.png' title='PawPal App 2' width='' alt='PawPal App' class='center-block' /></a>
+
+## Features
+
+- **Multi-pet support** — Add as many pets as you like; tasks are tracked per pet and aggregated across all of them for scheduling.
+
+- **Priority-based scheduling** — The scheduler greedily fills your daily time budget starting from the highest-priority tasks (high → medium → low). Within the same priority tier, shorter tasks are preferred to maximise the number of tasks completed.
+
+- **Chronological sorting** — `Scheduler.sort_by_time()` orders tasks by their `start_time` (HH:MM, 24-hour). Tasks without an explicit time fall back to slot defaults: morning → 08:00, afternoon → 13:00, evening → 18:00.
+
+- **Task filtering** — `Scheduler.filter_tasks()` lets you view tasks by pet name, completion status, or both — useful for seeing only what still needs doing.
+
+- **Recurring task recurrence** — `Task.mark_complete()` auto-advances `due_date` using Python's `timedelta`: daily tasks recur the next day, weekly tasks recur in 7 days. One-off (`as-needed`) tasks stay completed.
+
+- **Conflict detection** — `Scheduler.detect_conflicts()` checks whether any two tasks for the same pet have overlapping `[start, start+duration)` windows. Conflicts are shown as yellow warnings in the UI — the plan is still generated so the owner can decide how to resolve them.
+
+- **Plan explanation** — `DailyPlan.explain()` narrates why each task was included or skipped, giving the owner transparency into the scheduling decisions.
+
+- **Input validation** — `Task.__post_init__` rejects invalid data (zero/negative duration, malformed times) at construction time, so bad tasks can never enter the scheduler.
 
 ## Scenario
 
@@ -9,18 +33,6 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 - Track pet care tasks (walks, feeding, meds, enrichment, grooming, etc.)
 - Consider constraints (time available, priority, owner preferences)
 - Produce a daily plan and explain why it chose that plan
-
-Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
-
-## What you will build
-
-Your final app should:
-
-- Let a user enter basic owner + pet info
-- Let a user add/edit tasks (duration + priority at minimum)
-- Generate a daily schedule/plan based on constraints and priorities
-- Display the plan clearly (and ideally explain the reasoning)
-- Include tests for the most important scheduling behaviors
 
 ## Getting started
 

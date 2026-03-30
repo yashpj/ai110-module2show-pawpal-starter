@@ -47,13 +47,31 @@ The conflict detector flags overlaps using exact `start_time` + `duration_minute
 
 **a. How you used AI**
 
-- How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
-- What kinds of prompts or questions were most helpful?
+AI was used across every phase of the project, but in different modes depending on the task:
+
+- **Design brainstorming** — used Claude Code chat to identify the five core classes and their responsibilities before writing any code. Asking "what are the main objects in a pet care scheduling system?" produced a useful first draft that I then trimmed and refined.
+- **Skeleton generation** — used Agent Mode to turn the UML directly into Python class stubs with proper dataclass annotations and type hints, which saved significant boilerplate time.
+- **Algorithm implementation** — used Inline Chat to flesh out `sort_by_time()` with a `lambda` sort key and `detect_conflicts()` with interval overlap logic (`a_start < b_end and b_start < a_end`). Explaining the math behind the overlap condition in natural language ("two intervals overlap if one starts before the other ends") got an accurate result immediately.
+- **Test generation** — asked Copilot to draft edge-case tests using `#codebase` context. The most useful prompt pattern was: "What are the boundary conditions for this method?" rather than "Write tests for this method."
+- **Debugging** — when the `test_mark_complete_sets_completed_true` test failed after the recurrence feature was added, Inline Chat instantly identified that the test's expectation was now wrong, not the logic. This saved time that would otherwise be spent re-reading the code manually.
+
+The most effective Copilot features were **Agent Mode** (for multi-file, multi-step tasks like wiring the UI) and **Inline Chat** (for targeted questions about a specific function).
 
 **b. Judgment and verification**
 
-- Describe one moment where you did not accept an AI suggestion as-is.
-- How did you evaluate or verify what the AI suggested?
+When generating the `Scheduler` skeleton, Copilot initially placed `add_task()` and `remove_task()` directly on the `Scheduler` class. This felt wrong — the scheduler's job is to *plan*, not to *own* tasks. Tasks belong to a `Pet`, which belongs to an `Owner`. Accepting the AI's version would have created a second, parallel way to manage tasks that could easily get out of sync with `pet.tasks`.
+
+The fix was to reject that suggestion and instead move task management to `Pet`, with the `Scheduler` reading tasks through `Owner.get_all_tasks()`. I verified this was the right call by asking: "If I call `scheduler.add_task()` and `pet.add_task()` on the same task, which list is the source of truth?" — the ambiguity made the problem obvious.
+
+**c. Separate chat sessions**
+
+Keeping separate chat sessions for design, implementation, and testing prevented context bleed. During the testing session, Copilot only had test-related context, so it suggested edge cases (empty pet list, task exceeding full budget) rather than drifting into implementation suggestions. During the design session, the conversation stayed at the architecture level without getting pulled into Streamlit UI details. Mixing everything into one session would have produced unfocused, inconsistent suggestions.
+
+**d. Being the lead architect**
+
+The most important lesson was that AI is excellent at executing a well-specified task and poor at deciding *which* task to execute. Every time I gave Copilot a vague prompt ("make the scheduler smarter"), the result required heavy revision. Every time I gave it a precise, constrained prompt ("add a method that returns overlapping task pairs as warning strings, don't modify the schedule"), the result was close to correct on the first try.
+
+Being lead architect means translating ambiguous requirements ("the app should feel professional") into specific, verifiable decisions ("use `st.warning()` for conflicts and `st.progress()` for the time budget") before involving AI. The human's job is to hold the design vision and make the judgment calls; the AI's job is to execute within those boundaries quickly and correctly.
 
 ---
 
@@ -61,13 +79,13 @@ The conflict detector flags overlaps using exact `start_time` + `duration_minute
 
 **a. What you tested**
 
-- What behaviors did you test?
-- Why were these tests important?
+19 tests across 6 categories: task validation (construction-time errors), recurrence logic (daily/weekly/as-needed `due_date` advancement), pet task management (`add_task`, pending filtering), sorting correctness (chronological order with and without explicit `start_time`), conflict detection (overlap vs. back-to-back vs. no `start_time`), and scheduler edge cases (no pets, no tasks, task exceeding full budget).
+
+These tests were important because the most fragile part of the system is the interaction between `mark_complete()` and `due_date` — a subtle bug there (e.g. advancing by 7 days for a daily task) would silently produce wrong schedules with no visible error. Tests made that contract explicit and machine-verifiable.
 
 **b. Confidence**
 
-- How confident are you that your scheduler works correctly?
-- What edge cases would you test next if you had more time?
+★★★★☆ — The core logic is well covered. The gap is the Streamlit UI layer (no automated tests) and exhaustive scheduler combinations (e.g., mixed-priority tasks where a greedy fit produces a suboptimal result a human would notice). Next edge cases to test: two tasks that together fit the budget but individually neither would trigger a skip, and a pet with all tasks already completed (should produce an empty plan, not an error).
 
 ---
 
@@ -75,12 +93,12 @@ The conflict detector flags overlaps using exact `start_time` + `duration_minute
 
 **a. What went well**
 
-- What part of this project are you most satisfied with?
+The class separation worked cleanly throughout the project. Because `Task`, `Pet`, and `Owner` are pure data classes and `Scheduler` is the only place with logic, every feature addition (recurrence, conflict detection, sorting) could be added to `Scheduler` without touching the data classes. That boundary made the codebase easy to navigate and test independently.
 
 **b. What you would improve**
 
-- If you had another iteration, what would you improve or redesign?
+The greedy scheduling algorithm is simple but not optimal — it can miss combinations where skipping a long high-priority task would allow three medium-priority tasks to fit. A next iteration could implement a knapsack-style approach or let the user set a "minimum required tasks" threshold. I would also add a `start_time` input field to the Streamlit task form so users can use conflict detection directly from the UI.
 
 **c. Key takeaway**
 
-- What is one important thing you learned about designing systems or working with AI on this project?
+Designing the system on paper (UML) before writing any code forced every class to have a clear, single responsibility. When AI suggestions violated that structure (like putting task management on the Scheduler), the violation was immediately visible because the design existed as a reference. Without the upfront design, those structural mistakes would have been accepted and would have accumulated into technical debt. The UML was not wasted time — it was the artifact that made every subsequent AI interaction more precise and the code easier to reason about.
